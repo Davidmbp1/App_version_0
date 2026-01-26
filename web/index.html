@@ -723,22 +723,45 @@
   let globalData = null;
   try {
     const dataUrl = getDataJsUrl();
-    const response = await fetch(dataUrl);
+    console.log("[DEBUG] Intentando cargar data.js desde:", dataUrl);
+    
+    // Intentar cargar con fetch
+    const response = await fetch(dataUrl, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      headers: {
+        'Accept': 'application/javascript, text/javascript, */*'
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error(`Error al cargar data.js: ${response.status}`);
+      throw new Error(`Error al cargar data.js: ${response.status} ${response.statusText}`);
     }
+    
     const scriptText = await response.text();
+    console.log("[DEBUG] data.js cargado exitosamente, tamaño:", scriptText.length, "caracteres");
+    
     // Ejecutar el script para definir DATA
     eval(scriptText);
     
     if (typeof DATA !== "undefined") {
       globalData = DATA;
+      console.log("[DEBUG] DATA encontrado, casos:", globalData.length);
     } else if (typeof window !== "undefined" && typeof window.DATA !== "undefined") {
       globalData = window.DATA;
+      console.log("[DEBUG] window.DATA encontrado, casos:", globalData.length);
+    } else {
+      throw new Error("DATA no se definió después de ejecutar data.js");
     }
   } catch (error) {
     console.error("Error al cargar data.js:", error);
-    alert("Error al cargar data.js: " + error.message);
+    console.error("Detalles del error:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    alert("Error al cargar data.js: " + error.message + "\n\nRevisa la consola para más detalles.");
     return;
   }
 
