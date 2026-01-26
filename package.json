@@ -1,0 +1,16 @@
+{
+  "name": "callos-annotation-tool",
+  "version": "1.0.0",
+  "description": "Herramienta web para anotación de callos por médicos",
+  "scripts": {
+    "serve": "npx http-server web -p 8000 -c-1 --cors",
+    "serve:python": "python servidor_local.py"
+  },
+  "keywords": [
+    "annotation",
+    "medical",
+    "callos"
+  ],
+  "author": "",
+  "license": "MIT"
+}

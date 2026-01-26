@@ -1,0 +1,16 @@
+# Configuración de Netlify
+# Este archivo le dice a Netlify cómo desplegar tu sitio
+
+[build]
+  # No necesitamos build command (es un sitio estático)
+  publish = "web"
+  
+  # Comando de build (vacío porque no necesitamos compilar nada)
+  command = ""
+
+# Configuración de redirecciones (opcional)
+# Si alguien accede a la raíz, redirigir a index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

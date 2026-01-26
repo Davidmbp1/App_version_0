@@ -1,0 +1,1441 @@
+<!doctype html> 
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Revisor de callos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --panel-bg: #ffffff;
+      --border: #dde1e7;
+      --accent: #2563eb;
+      --accent-soft: #e0ecff;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    .shell {
+      max-width: 1600px;
+      margin: 16px auto;
+      padding: 0 16px 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      font-weight: 650;
+    }
+
+    header .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .annotator-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      background: #e5f3ff;
+      border: 1px solid #bfdbfe;
+      font-size: 0.9rem;
+    }
+
+    .annotator-box input {
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+      padding: 4px 8px;
+      font-size: 0.9rem;
+      min-width: 140px;
+    }
+
+    .annotator-box label {
+      font-weight: 500;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1.4fr 360px;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+          "sidebar sidebar"
+          "image   lesions";
+      }
+      .sidebar { grid-area: sidebar; }
+      .image-panel { grid-area: image; }
+      .lesion-panel { grid-area: lesions; }
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "sidebar"
+          "image"
+          "lesions";
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+      padding: 12px 12px 14px;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+    }
+
+    .panel-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* Sidebar (casos) */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.88rem;
+    }
+
+    .case-list {
+      max-height: 60vh;
+      overflow: auto;
+      padding-right: 4px;
+      margin-top: 4px;
+    }
+
+    .case-item {
+      padding: 6px 8px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      margin-bottom: 4px;
+    }
+
+    .case-item:hover { background: #f3f4ff; }
+
+    .case-item.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .case-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .case-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      background: #f3f4ff;
+      color: #1e3a8a;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22c55e;
+    }
+
+    .pill-dot.pending { background: #facc15; }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #eef2ff; }
+
+    .btn-primary {
+      border-color: #1d4ed8;
+      background: #1d4ed8;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover { background: #1e40af; }
+
+    .export-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    /* Panel de imagen */
+    .image-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .image-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .image-columns {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .image-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .image-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .image-zoom-btn {
+      font-size: 0.8rem;
+      padding: 2px 6px;
+    }
+
+    .image-wrapper {
+      position: relative;
+      width: 100%;
+      background: #020617;
+      border-radius: var(--radius-md);
+      overflow: auto;
+      min-height: 280px;
+      cursor: default;
+    }
+
+    .image-viewport {
+      position: relative;
+      display: inline-block;
+      transform-origin: center center;
+    }
+
+    .image-viewport.zoomed {
+      transform: scale(1.8);
+    }
+
+    .image-viewport img {
+      display: block;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      background: #020617;
+    }
+
+    .image-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .image-caption {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* Panel lesiones */
+    .lesion-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .lesion-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .summary-counts {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .summary-chip {
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 0.85rem;
+    }
+
+    .last-decision {
+      margin-top: 4px;
+      font-size: 0.85rem;
+    }
+
+    .lesion-list {
+      margin-top: 6px;
+      max-height: 60vh;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .lesion-item {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 8px 9px;
+      margin-bottom: 6px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto auto;
+      column-gap: 8px;
+      row-gap: 4px;
+      font-size: 0.9rem;
+    }
+
+    .lesion-item.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+    }
+
+    .lesion-badge {
+      grid-row: span 2;
+      align-self: flex-start;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 500;
+      font-size: 0.88rem;
+    }
+
+    .lesion-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .lesion-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-small {
+      font-size: 0.85rem;
+      padding: 4px 9px;
+    }
+
+    .btn-yes {
+      border-color: var(--success);
+      color: var(--success);
+      background: #ecfdf3;
+    }
+
+    .btn-yes.selected {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .btn-no {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: #fef2f2;
+    }
+
+    .btn-no.selected {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .btn-other {
+      border-color: #8b5cf6;
+      color: #8b5cf6;
+      background: #f3f4f6;
+    }
+
+    .btn-other.selected {
+      background: #8b5cf6;
+      color: #ffffff;
+    }
+
+    /* SVG overlay */
+    svg.overlay-root { width: 100%; height: 100%; }
+
+    .poly {
+      stroke-width: 3;
+      fill-opacity: 0.15;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .poly.unset {
+      stroke: #facc15;
+      fill: rgba(250, 204, 21, 0.15);
+    }
+
+    .poly.yes {
+      stroke: #22c55e;
+      fill: rgba(34, 197, 94, 0.15);
+    }
+
+    .poly.no {
+      stroke: #ef4444;
+      fill: rgba(239, 68, 68, 0.15);
+    }
+
+    .poly.other {
+      stroke: #8b5cf6;
+      fill: rgba(139, 92, 246, 0.15);
+    }
+
+    .poly:hover { 
+      stroke-width: 4;
+      fill-opacity: 0.25;
+    }
+
+    .poly.active-poly {
+      stroke-width: 4;
+      fill-opacity: 0.25;
+      filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.9));
+    }
+
+    .lesion-label {
+      font-size: 20px;   /* L1, L2… más grande */
+      fill: #000000;
+      stroke: #ffffff;
+      stroke-width: 1;
+      paint-order: stroke;
+      pointer-events: none;
+    }
+
+    .empty-message {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      padding: 8px 4px;
+    }
+
+    /* Leyenda de colores */
+    .color-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px;
+      background: #f9fafb;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Barra de progreso */
+    .progress-bar-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: var(--radius-md);
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      min-width: 45px;
+      text-align: right;
+    }
+
+    /* Animación de feedback */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .poly.just-marked {
+      animation: pulse 0.3s ease;
+    }
+
+    .lesion-item.just-updated {
+      animation: pulse 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div>
+      <h1>Revisor de callos</h1>
+      <p class="subtitle">Valida las lesiones detectadas automáticamente en cada planta de pie.</p>
+    </div>
+    <div class="annotator-box">
+      <label for="annotatorInput">Anotador:</label>
+      <input id="annotatorInput" type="text" placeholder="ej. dr_garcia" value="anotador_1" />
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="panel sidebar">
+      <div>
+        <p class="panel-title">Casos</p>
+        <p class="panel-sub" id="sidebarMeta"></p>
+      </div>
+      <div id="caseList" class="case-list"></div>
+      <div class="sidebar-footer">
+        <div class="nav-buttons">
+          <button class="btn" id="prevBtn">◀ Anterior</button>
+          <button class="btn" id="nextBtn">Siguiente ▶</button>
+        </div>
+        <div class="export-buttons">
+          <button class="btn btn-primary" id="exportCsvBtn">Exportar CSV</button>
+          <button class="btn" id="exportJsonBtn">Exportar JSON</button>
+        </div>
+        <div id="progressInfo"></div>
+      </div>
+    </aside>
+
+    <!-- Panel imagen -->
+    <section class="panel image-panel">
+      <header>
+        <p class="panel-title" id="imageTitle">Imagen</p>
+        <p class="panel-sub" id="imageSub">Selecciona un caso para comenzar.</p>
+      </header>
+
+      <div class="image-columns">
+        <div>
+          <div class="image-label-row">
+            <span class="image-label">Imagen original</span>
+            <button class="btn btn-small image-zoom-btn" id="origZoomBtn">Zoom</button>
+          </div>
+          <div class="image-wrapper" id="origWrapper">
+            <div class="image-viewport" id="origViewport">
+              <img id="origImage" alt="Imagen original" />
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="image-label-row">
+            <span class="image-label">Imagen con anotaciones</span>
+            <button class="btn btn-small image-zoom-btn" id="annZoomBtn">Zoom</button>
+          </div>
+          <div class="image-wrapper" id="annWrapper">
+            <div class="image-viewport" id="annViewport">
+              <img id="footImage" alt="Imagen anotada" />
+              <div class="image-overlay">
+                <svg id="overlaySvg" class="overlay-root"
+                     xmlns="http://www.w3.org/2000/svg"></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="image-caption">
+        <span id="imageCaptionLeft"></span>
+        <span id="imageCaptionRight"></span>
+      </div>
+    </section>
+
+    <!-- Panel lesiones -->
+    <section class="panel lesion-panel">
+      <header>
+        <p class="panel-title">Lesiones detectadas</p>
+        <p class="panel-sub">Marca cada región como <strong>"Es callo"</strong>, <strong>"No es callo"</strong> o <strong>"Otra lesión"</strong>.</p>
+      </header>
+      
+      <!-- Leyenda de colores -->
+      <div class="color-legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgba(250, 204, 21, 0.15); border: 2px solid #facc15;"></div>
+          <span>Sin revisar</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgba(34, 197, 94, 0.15); border: 2px solid #22c55e;"></div>
+          <span>Es callo</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgba(239, 68, 68, 0.15); border: 2px solid #ef4444;"></div>
+          <span>No es callo</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: rgba(139, 92, 246, 0.15); border: 2px solid #8b5cf6;"></div>
+          <span>Otra lesión</span>
+        </div>
+      </div>
+      
+      <!-- Barra de progreso visual -->
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-text" id="progressText">0%</span>
+      </div>
+      
+      <div class="lesion-summary">
+        <div class="summary-counts">
+          <div class="summary-chip" id="summaryCurrent"></div>
+          <div class="summary-chip" id="summaryGlobal"></div>
+        </div>
+      </div>
+      <div class="summary-chip last-decision" id="lastDecision">Última decisión: —</div>
+      <div id="lesionList" class="lesion-list"></div>
+    </section>
+  </div>
+</div>
+
+<!-- Datos del modelo -->
+<script src="data.js"></script>
+<script>
+(function() {
+  let globalData = null;
+  if (typeof DATA !== "undefined") {
+    globalData = DATA;
+  } else if (typeof window !== "undefined" && typeof window.DATA !== "undefined") {
+    globalData = window.DATA;
+  }
+
+  if (!globalData || !Array.isArray(globalData) || globalData.length === 0) {
+    alert("No se encontró DATA en data.js o está vacío.");
+    return;
+  }
+
+  const cases = globalData;
+  
+  // =====================================================
+  // CONFIGURACIÓN DE FIREBASE STORAGE
+  // =====================================================
+  // Para usar Firebase Storage, cambia USE_FIREBASE_STORAGE a true
+  // y configura tu bucket de Firebase Storage
+  const USE_FIREBASE_STORAGE = true; // ✅ Activado para usar Firebase Storage
+  const FIREBASE_STORAGE_BUCKET = "foot-selfie---multiplatform.firebasestorage.app"; // Tu bucket de Firebase
+  
+  // Función para obtener la URL de la imagen (local o Firebase Storage)
+  function getImageUrl(relativePath) {
+    if (!relativePath) return "";
+    
+    // Si Firebase Storage está desactivado, usar ruta relativa normal
+    if (!USE_FIREBASE_STORAGE) {
+      return relativePath;
+    }
+    
+    // Si la ruta ya es una URL completa (http/https), devolverla tal cual
+    if (relativePath.startsWith("http://") || relativePath.startsWith("https://")) {
+      return relativePath;
+    }
+    
+    // Convertir ruta relativa a URL de Firebase Storage
+    // Ejemplo: "images/IMG_XXX.png" -> "https://storage.googleapis.com/bucket/Revision_de_callos/IMG_XXX.png"
+    const imageName = relativePath.replace(/^images\//, ""); // Remover prefijo "images/" si existe
+    // Usar la carpeta "Revision_de_callos" (sin espacios, Firebase Storage Rules no acepta espacios)
+    return `https://storage.googleapis.com/${FIREBASE_STORAGE_BUCKET}/Revision_de_callos/${imageName}`;
+  }
+  
+  const state = {
+    index: 0,
+    decisions: {},
+    timestamps: {},
+    otherLesionTypes: {},  // Guarda el tipo de lesión cuando es "Otra lesión"
+    selectedLesionId: ""
+  };
+
+  const els = {
+    caseList: document.getElementById("caseList"),
+    sidebarMeta: document.getElementById("sidebarMeta"),
+    progressInfo: document.getElementById("progressInfo"),
+    progressBar: document.getElementById("progressBar"),
+    progressFill: document.getElementById("progressFill"),
+    progressText: document.getElementById("progressText"),
+    prevBtn: document.getElementById("prevBtn"),
+    nextBtn: document.getElementById("nextBtn"),
+    exportCsvBtn: document.getElementById("exportCsvBtn"),
+    exportJsonBtn: document.getElementById("exportJsonBtn"),
+    annotatorInput: document.getElementById("annotatorInput"),
+    lesionList: document.getElementById("lesionList"),
+
+    origWrapper: document.getElementById("origWrapper"),
+    origViewport: document.getElementById("origViewport"),
+    origImage: document.getElementById("origImage"),
+    origZoomBtn: document.getElementById("origZoomBtn"),
+
+    annWrapper: document.getElementById("annWrapper"),
+    annViewport: document.getElementById("annViewport"),
+    footImage: document.getElementById("footImage"),
+    overlaySvg: document.getElementById("overlaySvg"),
+    annZoomBtn: document.getElementById("annZoomBtn"),
+
+    imageTitle: document.getElementById("imageTitle"),
+    imageSub: document.getElementById("imageSub"),
+    imageCaptionLeft: document.getElementById("imageCaptionLeft"),
+    imageCaptionRight: document.getElementById("imageCaptionRight"),
+
+    lesionList: document.getElementById("lesionList"),
+    summaryCurrent: document.getElementById("summaryCurrent"),
+    summaryGlobal: document.getElementById("summaryGlobal"),
+    lastDecision: document.getElementById("lastDecision")
+  };
+
+  // --- Persistencia local ---
+  const STORAGE_KEY = "callos_annotation_state_v1";
+
+  function saveState() {
+    const payload = {
+      decisions: state.decisions,
+      timestamps: state.timestamps,
+      otherLesionTypes: state.otherLesionTypes,
+      annotator: els.annotatorInput.value || "",
+      index: state.index
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.warn("No se pudo guardar el estado en localStorage:", e);
+    }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data && typeof data === "object") {
+        if (data.decisions) state.decisions = data.decisions;
+        if (data.timestamps) state.timestamps = data.timestamps;
+        if (data.otherLesionTypes) state.otherLesionTypes = data.otherLesionTypes;
+        if (typeof data.index === "number" &&
+            data.index >= 0 && data.index < cases.length) {
+          state.index = data.index;
+        }
+        if (data.annotator && els.annotatorInput) {
+          els.annotatorInput.value = data.annotator;
+        }
+      }
+    } catch (e) {
+      console.warn("No se pudo cargar el estado desde localStorage:", e);
+    }
+  }
+
+  if (els.annotatorInput) {
+    els.annotatorInput.addEventListener("input", () => {
+      saveState();
+    });
+  }
+
+  function getCurrentCase() { return cases[state.index]; }
+
+  function ensureCaseState(caseId) {
+    if (!state.decisions[caseId]) state.decisions[caseId] = {};
+    if (!state.timestamps[caseId]) state.timestamps[caseId] = {};
+    if (!state.otherLesionTypes[caseId]) state.otherLesionTypes[caseId] = {};
+  }
+
+  function humanDecision(dec, otherType = "") {
+    if (dec === "ES_CALLO") return "Es callo";
+    if (dec === "NO_ES_CALLO") return "No es callo";
+    if (dec === "OTRA_LESION") {
+      return otherType ? `Otra lesión: ${otherType}` : "Otra lesión";
+    }
+    return "Sin decisión";
+  }
+
+  function countCaseDecisions(c) {
+    const map = state.decisions[c.case_id] || {};
+    const total = (c.lesions || []).length;
+    let yes = 0, no = 0, other = 0, done = 0;
+    (c.lesions || []).forEach(l => {
+      const d = map[l.id];
+      if (d === "ES_CALLO") { yes++; done++; }
+      else if (d === "NO_ES_CALLO") { no++; done++; }
+      else if (d === "OTRA_LESION") { other++; done++; }
+    });
+    return { total, yes, no, other, done };
+  }
+
+  function countGlobalDecisions() {
+    let total = 0, done = 0;
+    cases.forEach(c => {
+      const s = countCaseDecisions(c);
+      total += s.total;
+      done += s.done;
+    });
+    return { total, done };
+  }
+
+  function updateLastDecision(caseId, lesionId, value) {
+    const c = cases.find(x => x.case_id === caseId);
+    if (!c) return;
+    const lesions = c.lesions || [];
+    const idx = lesions.findIndex(l => l.id === lesionId);
+    const labelId = idx >= 0 ? `L${idx + 1}` : lesionId;
+    const otherTypeMap = state.otherLesionTypes[caseId] || {};
+    const otherType = otherTypeMap[lesionId] || "";
+    const txt = humanDecision(value, otherType);
+    els.lastDecision.textContent = `Última decisión: ${labelId} · ${txt}`;
+  }
+
+  function setDecision(caseId, lesionId, value, otherType = null) {
+    // Asegurar que el estado esté inicializado
+    if (!state.decisions[caseId]) {
+      state.decisions[caseId] = {};
+    }
+    if (!state.timestamps[caseId]) {
+      state.timestamps[caseId] = {};
+    }
+    if (!state.otherLesionTypes[caseId]) {
+      state.otherLesionTypes[caseId] = {};
+    }
+    
+    const previousValue = state.decisions[caseId][lesionId];
+    state.decisions[caseId][lesionId] = value || undefined;
+    state.selectedLesionId = lesionId;
+
+    // Feedback visual: animar el polígono y el item de lesión
+    if (value !== previousValue) {
+      const poly = document.querySelector(`polygon[data-lesion-id="${lesionId}"][data-case-id="${caseId}"]`);
+      if (poly) {
+        poly.classList.add("just-marked");
+        setTimeout(() => poly.classList.remove("just-marked"), 300);
+      }
+      const lesionItem = document.querySelector(`.lesion-item[data-lesion-id="${lesionId}"]`);
+      if (lesionItem) {
+        lesionItem.classList.add("just-updated");
+        setTimeout(() => lesionItem.classList.remove("just-updated"), 300);
+      }
+    }
+
+    if (value === "OTRA_LESION") {
+      // Si se cambia a OTRA_LESION y hay otherType, guardarlo
+      // Si no hay otherType pero ya existía uno, mantenerlo
+      if (otherType) {
+        state.otherLesionTypes[caseId][lesionId] = otherType;
+      }
+      // Si no hay otherType y no había nada antes, no hacer nada (mantener undefined)
+    } else {
+      // Limpiar el tipo si cambia a otra categoría
+      if (state.otherLesionTypes[caseId]) {
+        state.otherLesionTypes[caseId][lesionId] = undefined;
+      }
+    }
+
+    if (value) {
+      if (!state.timestamps[caseId][lesionId]) {
+        state.timestamps[caseId][lesionId] = new Date().toISOString();
+      }
+    } else {
+      if (state.timestamps[caseId]) {
+        state.timestamps[caseId][lesionId] = undefined;
+      }
+      if (state.otherLesionTypes[caseId]) {
+        state.otherLesionTypes[caseId][lesionId] = undefined;
+      }
+    }
+
+    updateLastDecision(caseId, lesionId, value);
+    renderLesions();
+    renderOverlay();
+    renderCaseList();
+    renderSummaries();
+    saveState();
+  }
+
+  function setSelectedLesion(caseId, lesionId) {
+    state.selectedLesionId = lesionId || "";
+    renderLesions();
+    renderOverlay();
+  }
+
+  // Sidebar
+  function renderCaseList() {
+    els.caseList.innerHTML = "";
+    const totalCases = cases.length;
+    cases.forEach((c, i) => {
+      const stats = countCaseDecisions(c);
+      const item = document.createElement("div");
+      item.className = "case-item" + (i === state.index ? " active" : "");
+      item.dataset.index = i;
+
+      const title = document.createElement("div");
+      title.className = "case-title";
+      title.textContent = c.case_id || `Caso ${i+1}`;
+
+      const meta = document.createElement("div");
+      meta.className = "case-meta";
+
+      const pill = document.createElement("span");
+      pill.className = "pill";
+      const dot = document.createElement("span");
+      dot.className = "pill-dot" + (stats.done === stats.total && stats.total > 0 ? "" : " pending");
+      const txt = document.createElement("span");
+      txt.textContent = stats.total > 0 ? `${stats.done}/${stats.total} lesiones` : "0 lesiones";
+
+      pill.appendChild(dot);
+      pill.appendChild(txt);
+
+      const idxLabel = document.createElement("span");
+      idxLabel.textContent = `#${i+1}`;
+
+      meta.appendChild(pill);
+      meta.appendChild(idxLabel);
+
+      item.appendChild(title);
+      item.appendChild(meta);
+
+      item.addEventListener("click", () => {
+        state.index = i;
+        state.selectedLesionId = "";
+        loadCurrentCase();
+        saveState();
+      });
+
+      els.caseList.appendChild(item);
+    });
+
+    const globalStats = countGlobalDecisions();
+    els.sidebarMeta.textContent =
+      `${totalCases} casos · ${globalStats.done}/${globalStats.total} lesiones revisadas`;
+    els.progressInfo.textContent =
+      "Puedes exportar CSV/JSON en cualquier momento, incluso si no has completado todos los casos.";
+  }
+
+  // Overlay
+  function clearOverlay() {
+    while (els.overlaySvg.firstChild) {
+      els.overlaySvg.removeChild(els.overlaySvg.firstChild);
+    }
+  }
+
+  function renderOverlay() {
+    clearOverlay();
+    const c = getCurrentCase();
+    if (!c || !els.footImage.naturalWidth) return;
+
+    const imgW = els.footImage.naturalWidth;
+    const imgH = els.footImage.naturalHeight;
+
+    els.overlaySvg.setAttribute("viewBox", `0 0 ${imgW} ${imgH}`);
+    els.overlaySvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+
+    const lesions = c.lesions || [];
+    const map = state.decisions[c.case_id] || {};
+
+    lesions.forEach((l, idx) => {
+      const pts = l.points || [];
+      if (!pts.length) return;
+
+      const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      const str = pts.map(p => p.join(",")).join(" ");
+      poly.setAttribute("points", str);
+
+      const dec = map[l.id];
+      poly.classList.add("poly");
+      if (dec === "ES_CALLO") poly.classList.add("yes");
+      else if (dec === "NO_ES_CALLO") poly.classList.add("no");
+      else if (dec === "OTRA_LESION") poly.classList.add("other");
+      else poly.classList.add("unset");
+
+      if (state.selectedLesionId === l.id) {
+        poly.classList.add("active-poly");
+      }
+
+      poly.dataset.lesionId = l.id;
+      poly.dataset.caseId = c.case_id;
+      
+      poly.addEventListener("click", function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        const lesionId = this.dataset.lesionId;
+        const caseId = this.dataset.caseId;
+        
+        // Leer el estado actual directamente
+        ensureCaseState(caseId);
+        const currentMap = state.decisions[caseId] || {};
+        const current = currentMap[lesionId];
+        
+        let next;
+        if (current === "ES_CALLO") {
+          next = "NO_ES_CALLO";
+        } else if (current === "NO_ES_CALLO") {
+          next = "OTRA_LESION";
+        } else if (current === "OTRA_LESION") {
+          next = undefined;
+        } else {
+          next = "ES_CALLO";
+        }
+        
+        setDecision(caseId, lesionId, next);
+      });
+
+      els.overlaySvg.appendChild(poly);
+
+      // Label L1, L2...
+      let sx = 0, sy = 0;
+      pts.forEach(p => { sx += p[0]; sy += p[1]; });
+      const cx = sx / pts.length;
+      const cy = sy / pts.length;
+
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", cx);
+      label.setAttribute("y", cy);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("dominant-baseline", "central");
+      label.classList.add("lesion-label");
+      label.textContent = `L${idx + 1}`;
+      els.overlaySvg.appendChild(label);
+    });
+  }
+
+  // Lista de lesiones
+  function renderLesions() {
+    const c = getCurrentCase();
+    els.lesionList.innerHTML = "";
+
+    if (!c || !c.lesions || c.lesions.length === 0) {
+      const msg = document.createElement("div");
+      msg.className = "empty-message";
+      msg.textContent = "Este caso no tiene lesiones detectadas por el modelo.";
+      els.lesionList.appendChild(msg);
+      els.summaryCurrent.textContent = "0 lesiones detectadas en este caso.";
+      return;
+    }
+
+    const map = state.decisions[c.case_id] || {};
+
+    c.lesions.forEach((l, idx) => {
+      const dec = map[l.id];
+
+      const item = document.createElement("div");
+      item.className = "lesion-item";
+      item.dataset.lesionId = l.id;
+      if (state.selectedLesionId === l.id) item.classList.add("active");
+
+      const badge = document.createElement("div");
+      badge.className = "lesion-badge";
+      badge.textContent = `L${idx+1}`;
+
+      const meta = document.createElement("div");
+      meta.className = "lesion-meta";
+      const idSpan = document.createElement("span");
+      idSpan.textContent = `ID: ${l.id}`;
+      const ptsSpan = document.createElement("span");
+      ptsSpan.textContent = `${(l.points || []).length} puntos`;
+
+      meta.appendChild(idSpan);
+      meta.appendChild(ptsSpan);
+
+      const actions = document.createElement("div");
+      actions.className = "lesion-actions";
+
+      const btnYes = document.createElement("button");
+      btnYes.className = "btn btn-small btn-yes";
+      btnYes.textContent = "Es callo";
+
+      const btnNo = document.createElement("button");
+      btnNo.className = "btn btn-small btn-no";
+      btnNo.textContent = "No es callo";
+
+      const btnOther = document.createElement("button");
+      btnOther.className = "btn btn-small btn-other";
+      btnOther.textContent = "Otra lesión";
+
+      if (dec === "ES_CALLO") btnYes.classList.add("selected");
+      if (dec === "NO_ES_CALLO") btnNo.classList.add("selected");
+      if (dec === "OTRA_LESION") btnOther.classList.add("selected");
+
+      btnYes.addEventListener("click", () => {
+        const current = map[l.id];
+        const next = current === "ES_CALLO" ? undefined : "ES_CALLO";
+        setDecision(c.case_id, l.id, next);
+      });
+
+      btnNo.addEventListener("click", () => {
+        const current = map[l.id];
+        const next = current === "NO_ES_CALLO" ? undefined : "NO_ES_CALLO";
+        setDecision(c.case_id, l.id, next);
+      });
+
+      btnOther.addEventListener("click", () => {
+        const current = map[l.id];
+        const next = current === "OTRA_LESION" ? undefined : "OTRA_LESION";
+        setDecision(c.case_id, l.id, next);
+      });
+
+      // Campo de texto para especificar el tipo de lesión
+      const otherInput = document.createElement("input");
+      otherInput.type = "text";
+      otherInput.className = "other-lesion-input";
+      otherInput.placeholder = "Especifica qué tipo de lesión es (ej: fisura, úlcera, eritema...)";
+      
+      // Obtener el valor guardado si existe
+      const otherTypeMap = state.otherLesionTypes[c.case_id] || {};
+      const savedOtherType = otherTypeMap[l.id] || "";
+      if (savedOtherType) {
+        otherInput.value = savedOtherType;
+      }
+      
+      // Mostrar/ocultar input según la decisión
+      if (dec === "OTRA_LESION") {
+        otherInput.classList.add("visible");
+      }
+      
+      // Guardar cuando se escribe
+      otherInput.addEventListener("input", () => {
+        ensureCaseState(c.case_id);
+        const currentDec = state.decisions[c.case_id]?.[l.id];
+        if (currentDec === "OTRA_LESION") {
+          state.otherLesionTypes[c.case_id][l.id] = otherInput.value.trim();
+          saveState();
+          updateLastDecision(c.case_id, l.id, currentDec);
+        }
+      });
+      
+      // Mostrar/ocultar input cuando cambia la decisión
+      const updateInputVisibility = () => {
+        const currentDec = state.decisions[c.case_id]?.[l.id];
+        if (currentDec === "OTRA_LESION") {
+          otherInput.classList.add("visible");
+          setTimeout(() => otherInput.focus(), 50);
+        } else {
+          otherInput.classList.remove("visible");
+        }
+      };
+      
+      // Actualizar visibilidad cuando se hace clic en cualquier botón
+      [btnYes, btnNo, btnOther].forEach(btn => {
+        btn.addEventListener("click", () => {
+          setTimeout(updateInputVisibility, 50);
+        });
+      });
+      
+      // Actualizar visibilidad inicial
+      updateInputVisibility();
+
+      item.addEventListener("click", (ev) => {
+        if (ev.target === btnYes || ev.target === btnNo || ev.target === btnOther || ev.target === otherInput) return;
+        setSelectedLesion(c.case_id, l.id);
+      });
+
+      actions.appendChild(btnYes);
+      actions.appendChild(btnNo);
+      actions.appendChild(btnOther);
+      
+      // Agregar el input después de los botones, dentro del item (span 2 columnas)
+      const inputContainer = document.createElement("div");
+      inputContainer.style.gridColumn = "span 2";
+      inputContainer.style.width = "100%";
+      inputContainer.appendChild(otherInput);
+      item.appendChild(inputContainer);
+
+      item.appendChild(badge);
+      item.appendChild(meta);
+      item.appendChild(actions);
+
+      els.lesionList.appendChild(item);
+    });
+  }
+
+  // Resúmenes
+  function renderSummaries() {
+    const c = getCurrentCase();
+    const stats = countCaseDecisions(c);
+    els.summaryCurrent.textContent =
+      `Caso actual: ${stats.done}/${stats.total} lesiones revisadas · ${stats.yes} "Es callo", ${stats.no} "No es callo", ${stats.other} "Otra lesión"`;
+
+    const globalStats = countGlobalDecisions();
+    els.summaryGlobal.textContent =
+      `Global: ${globalStats.done}/${globalStats.total} lesiones revisadas en todos los casos.`;
+    
+    // Actualizar barra de progreso
+    const progressPercent = globalStats.total > 0 
+      ? Math.round((globalStats.done / globalStats.total) * 100) 
+      : 0;
+    els.progressFill.style.width = `${progressPercent}%`;
+    els.progressText.textContent = `${progressPercent}%`;
+  }
+
+  // Carga de caso
+  function loadCurrentCase() {
+    const c = getCurrentCase();
+    if (!c) return;
+
+    ensureCaseState(c.case_id);
+
+    els.imageTitle.textContent = `Imagen · ${c.case_id}`;
+    els.imageSub.textContent = c.image_url || "";
+
+    // Usar getImageUrl() para soportar Firebase Storage o rutas locales
+    const imageUrl = getImageUrl(c.image_url);
+    els.origImage.src = imageUrl;
+    els.footImage.src = imageUrl;
+
+    els.lastDecision.textContent = "Última decisión: —";
+
+    els.origViewport.classList.remove("zoomed");
+    els.annViewport.classList.remove("zoomed");
+    els.origWrapper.style.cursor = "default";
+    els.annWrapper.style.cursor = "default";
+    els.origZoomBtn.textContent = "Zoom";
+    els.annZoomBtn.textContent = "Zoom";
+
+    els.footImage.onload = () => {
+      const sizeText = `${els.footImage.naturalWidth}×${els.footImage.naturalHeight}px`;
+      els.imageCaptionLeft.textContent = `Tamaño imagen: ${sizeText}`;
+      els.imageCaptionRight.textContent =
+        `${(c.lesions || []).length} lesiones detectadas`;
+      renderOverlay();
+    };
+
+    renderCaseList();
+    renderLesions();
+    renderSummaries();
+  }
+
+  // Export
+  function buildExportRows() {
+    const annotator = els.annotatorInput.value || "";
+    const rows = [];
+
+    cases.forEach(c => {
+      const map = state.decisions[c.case_id] || {};
+      const tsMap = state.timestamps[c.case_id] || {};
+      const otherTypeMap = state.otherLesionTypes[c.case_id] || {};
+      (c.lesions || []).forEach(l => {
+        const dec = map[l.id];
+        const otherType = otherTypeMap[l.id] || "";
+        const label = humanDecision(dec, otherType);
+        const ts = tsMap[l.id] || "";
+        rows.push({
+          case_id: c.case_id,
+          lesion_id: l.id,
+          decision_code: dec || "",
+          decision_label: label,
+          other_lesion_type: otherType,
+          annotator_id: annotator,
+          timestamp: ts,
+          image_url: c.image_url || "",
+          num_points: (l.points || []).length,
+          points_json: JSON.stringify(l.points || [])
+        });
+      });
+    });
+    return rows;
+  }
+
+  function exportCSV() {
+    const rows = buildExportRows();
+    const header = [
+      "case_id",
+      "lesion_id",
+      "decision_code",
+      "decision_label",
+      "other_lesion_type",
+      "annotator_id",
+      "timestamp",
+      "image_url",
+      "num_points",
+      "points_json"
+    ];
+
+    const esc = v => {
+      if (v == null) return "";
+      const s = String(v);
+      return /[\",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+
+    const lines = [];
+    lines.push(header.join(","));
+    rows.forEach(r => { lines.push(header.map(k => esc(r[k])).join(",")); });
+
+    const blob = new Blob([lines.join("\n")], {type: "text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "anotaciones_callos.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportJSON() {
+    const rows = buildExportRows();
+    const blob = new Blob([JSON.stringify(rows, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "anotaciones_callos.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Zoom
+  function setupZoom(buttonEl, wrapperEl, viewportEl) {
+    buttonEl.addEventListener("click", () => {
+      const zoomed = viewportEl.classList.toggle("zoomed");
+      buttonEl.textContent = zoomed ? "Salir zoom" : "Zoom";
+      wrapperEl.style.cursor = zoomed ? "grab" : "default";
+    });
+
+    wrapperEl.addEventListener("mousedown", () => {
+      if (!viewportEl.classList.contains("zoomed")) return;
+      wrapperEl.style.cursor = "grabbing";
+    });
+
+    wrapperEl.addEventListener("mouseup", () => {
+      if (!viewportEl.classList.contains("zoomed")) return;
+      wrapperEl.style.cursor = "grab";
+    });
+  }
+
+  setupZoom(els.origZoomBtn, els.origWrapper, els.origViewport);
+  setupZoom(els.annZoomBtn, els.annWrapper, els.annViewport);
+
+  // Navegación
+  els.prevBtn.addEventListener("click", () => {
+    if (state.index > 0) {
+      state.index -= 1;
+      state.selectedLesionId = "";
+      loadCurrentCase();
+      saveState();
+    }
+  });
+
+  els.nextBtn.addEventListener("click", () => {
+    if (state.index < cases.length - 1) {
+      state.index += 1;
+      state.selectedLesionId = "";
+      loadCurrentCase();
+      saveState();
+    }
+  });
+
+  els.exportCsvBtn.addEventListener("click", exportCSV);
+  els.exportJsonBtn.addEventListener("click", exportJSON);
+
+  // Init
+  loadState();
+  renderCaseList();
+  loadCurrentCase();
+  saveState();
+})();
+</script>
+</body>
+</html>

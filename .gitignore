@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env/
+.venv/
+venv/
+
+models/
+*.pth
+
+*.log
+*.tmp
+
+.vscode/
+
+web/annotations/
+
+# Firebase credentials (contiene información sensible)
+backend/firebase-credentials.json
+firebase-credentials.json
+
+# Imágenes (cuando se usa Firebase Storage, no necesitamos subirlas a GitHub)
+web/images/
