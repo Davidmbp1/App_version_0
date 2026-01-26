@@ -22,3 +22,6 @@ firebase-credentials.json
 
 # Imágenes (cuando se usa Firebase Storage, no necesitamos subirlas a GitHub)
 web/images/
+
+# data.js es muy grande (125 MB), se sube a Firebase Storage
+web/data.js

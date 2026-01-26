@@ -701,14 +701,45 @@
 </div>
 
 <!-- Datos del modelo -->
-<script src="data.js"></script>
 <script>
-(function() {
+(async function() {
+  // =====================================================
+  // CONFIGURACIÓN DE FIREBASE STORAGE
+  // =====================================================
+  // Para usar Firebase Storage, cambia USE_FIREBASE_STORAGE a true
+  // y configura tu bucket de Firebase Storage
+  const USE_FIREBASE_STORAGE = true; // ✅ Activado para usar Firebase Storage
+  const FIREBASE_STORAGE_BUCKET = "foot-selfie---multiplatform.firebasestorage.app"; // Tu bucket de Firebase
+  
+  // Función para obtener la URL de data.js (local o Firebase Storage)
+  function getDataJsUrl() {
+    if (!USE_FIREBASE_STORAGE) {
+      return "data.js";
+    }
+    return `https://storage.googleapis.com/${FIREBASE_STORAGE_BUCKET}/Revision_de_callos/data.js`;
+  }
+  
+  // Cargar data.js desde Firebase Storage o local
   let globalData = null;
-  if (typeof DATA !== "undefined") {
-    globalData = DATA;
-  } else if (typeof window !== "undefined" && typeof window.DATA !== "undefined") {
-    globalData = window.DATA;
+  try {
+    const dataUrl = getDataJsUrl();
+    const response = await fetch(dataUrl);
+    if (!response.ok) {
+      throw new Error(`Error al cargar data.js: ${response.status}`);
+    }
+    const scriptText = await response.text();
+    // Ejecutar el script para definir DATA
+    eval(scriptText);
+    
+    if (typeof DATA !== "undefined") {
+      globalData = DATA;
+    } else if (typeof window !== "undefined" && typeof window.DATA !== "undefined") {
+      globalData = window.DATA;
+    }
+  } catch (error) {
+    console.error("Error al cargar data.js:", error);
+    alert("Error al cargar data.js: " + error.message);
+    return;
   }
 
   if (!globalData || !Array.isArray(globalData) || globalData.length === 0) {
@@ -717,14 +748,6 @@
   }
 
   const cases = globalData;
-  
-  // =====================================================
-  // CONFIGURACIÓN DE FIREBASE STORAGE
-  // =====================================================
-  // Para usar Firebase Storage, cambia USE_FIREBASE_STORAGE a true
-  // y configura tu bucket de Firebase Storage
-  const USE_FIREBASE_STORAGE = true; // ✅ Activado para usar Firebase Storage
-  const FIREBASE_STORAGE_BUCKET = "foot-selfie---multiplatform.firebasestorage.app"; // Tu bucket de Firebase
   
   // Función para obtener la URL de la imagen (local o Firebase Storage)
   function getImageUrl(relativePath) {
