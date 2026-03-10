@@ -253,6 +253,11 @@ def run_export(args):
         print(f"[INFO] No se encontró columna 'fold' en el CSV. Procesando todas las imágenes de test.")
         active_folds = []
     
+    # Limitar número de imágenes si se especifica --max-images
+    if args.max_images is not None and args.max_images > 0:
+        df = df.head(args.max_images).copy()
+        print(f"[INFO] Limitando a las primeras {len(df)} imágenes (--max-images {args.max_images})")
+    
     # Cargar modelos (solo si hay folds)
     models = []
     thresholds = []
@@ -461,6 +466,7 @@ def parse_args():
     ap.add_argument("--fold", type=int, default=-1, help="Fold a usar (-1 = ensemble todos los folds)")
     ap.add_argument("--threshold", type=float, default=0.50, help="Umbral de binarización")
     ap.add_argument("--min-area", type=int, default=0, help="Área mínima de píxeles para filtrar")
+    ap.add_argument("--max-images", type=int, default=None, help="Máximo de imágenes a exportar (ej: 363). Si no se indica, se usan todas.")
     ap.add_argument("--data-js-name", type=str, default="data.js", help="Nombre del archivo data.js")
     return ap.parse_args()
 
